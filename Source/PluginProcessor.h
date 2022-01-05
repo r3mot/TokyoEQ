@@ -54,9 +54,19 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
     static AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
-    AudioProcessorValueTreeState apvst{ *this, nullptr, "Parameters", createParameterLayout() };
+    AudioProcessorValueTreeState apvst { *this, nullptr, "Parameters", createParameterLayout() };
+
 
 private:
+
+    using Filter    = dsp::IIR::Filter<float>;
+    using CutFilter = dsp::ProcessorChain<Filter, Filter, Filter, Filter>;
+    using Monochain = dsp::ProcessorChain<CutFilter, Filter, CutFilter>;
+    
+    Monochain leftChain, rightchain;
+
+
+
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TokyoEQAudioProcessor)
 };
