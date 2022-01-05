@@ -102,8 +102,17 @@ void TokyoEQAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBloc
     spec.sampleRate = sampleRate;
 
     leftChain.prepare(spec);
-    rightchain.prepare(spec);
+    rightChain.prepare(spec);
 
+    // produce coefficients
+    auto chainSettings = getChainSettings(apvts);
+    auto peakCoefficients = dsp::IIR::Coefficients<float>::makePeakFilter(sampleRate, 
+                                                                          chainSettings.peakFreq, 
+                                                                          chainSettings.peakQuality, 
+                                                                          Decibels::decibelsToGain(chainSettings.peakGainInDecibles));
+
+    *leftChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
+    *rightChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
 }
 
 void TokyoEQAudioProcessor::releaseResources()
@@ -153,6 +162,19 @@ void TokyoEQAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
+    // TO:DO - refactor
+    auto chainSettings = getChainSettings(apvts);
+    auto peakCoefficients = dsp::IIR::Coefficients<float>::makePeakFilter(getSampleRate(),
+        chainSettings.peakFreq,
+        chainSettings.peakQuality,
+        Decibels::decibelsToGain(chainSettings.peakGainInDecibles));
+
+    *leftChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
+    *rightChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
+    // End TO:DO
+
+
+
     // Audio blocks for each channel
     dsp::AudioBlock<float> block(buffer);
     auto leftBlock = block.getSingleChannelBlock(0);
@@ -162,7 +184,7 @@ void TokyoEQAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce
     dsp::ProcessContextReplacing<float> rightContext(rightBlock);
 
     leftChain.process(leftContext);
-    rightchain.process(rightContext);
+    rightChain.process(rightContext);
 
 }
 
@@ -190,6 +212,21 @@ void TokyoEQAudioProcessor::setStateInformation (const void* data, int sizeInByt
 {
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.
+}
+
+ChainSettings getChainSettings(AudioProcessorValueTreeState& apvts) // init params
+{
+    
+    ChainSettings settings;
+    settings.lowCutFreq = apvts.getRawParameterValue("LowCut Freq")->load();
+    settings.highCutFreq = apvts.getRawParameterValue("HighCut Freq")->load();
+    settings.peakFreq = apvts.getRawParameterValue("Peak Freq")->load();
+    settings.peakGainInDecibles = apvts.getRawParameterValue("Peak Gain")->load();
+    settings.peakQuality = apvts.getRawParameterValue("Peak Quality")->load();
+    settings.lowCutSlope = apvts.getRawParameterValue("LowCut Slope")->load();
+    settings.highCutSlope = apvts.getRawParameterValue("HighCut Slope")->load();
+
+    return settings;
 }
 
 AudioProcessorValueTreeState::ParameterLayout TokyoEQAudioProcessor::createParameterLayout()

@@ -10,6 +10,18 @@
 
 #include <JuceHeader.h>
 
+// Data structure for all param values
+struct ChainSettings
+{
+    float peakFreq{ 0 }, peakGainInDecibles{ 0 }, peakQuality{ 1.f };
+    float lowCutFreq{ 0 }, highCutFreq{ 0 };
+    int lowCutSlope{ 0 }, highCutSlope{ 0 };
+};
+
+// Helper function to get all param values from ChainSettings
+ChainSettings getChainSettings(AudioProcessorValueTreeState& apvts);
+
+
 //==============================================================================
 /**
 */
@@ -54,7 +66,7 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
     static AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
-    AudioProcessorValueTreeState apvst { *this, nullptr, "Parameters", createParameterLayout() };
+    AudioProcessorValueTreeState apvts { *this, nullptr, "Parameters", createParameterLayout() };
 
 
 private:
@@ -63,8 +75,14 @@ private:
     using CutFilter = dsp::ProcessorChain<Filter, Filter, Filter, Filter>;
     using Monochain = dsp::ProcessorChain<CutFilter, Filter, CutFilter>;
     
-    Monochain leftChain, rightchain;
+    Monochain leftChain, rightChain;
 
+    enum ChainPositions
+    {
+        LowCut,
+        Peak,
+        HighCut
+    };
 
 
     //==============================================================================
