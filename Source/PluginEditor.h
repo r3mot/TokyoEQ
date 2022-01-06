@@ -172,8 +172,12 @@ private:
          float sliderPosProportional,
          float rotaryStartAngle,
          float rotaryEndAngle,
-
          juce::Slider& slider) override;
+
+     void drawToggleButton(juce::Graphics& g,
+         juce::ToggleButton& toggleButton,
+         bool shouldDrawButtonAsHighlighed,
+         bool shouldDrawButtonAsDown) override;
 };
 
 struct RotarySliderWithLabels : juce::Slider // Base class initialization for sliders
@@ -312,6 +316,8 @@ private:
 
 
     std::vector<Component*> getComps();
+
+    LookAndFeel lnf;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TokyoEQAudioProcessorEditor)
 };

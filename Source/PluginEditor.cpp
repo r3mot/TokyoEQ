@@ -63,6 +63,24 @@ void LookAndFeel::drawRotarySlider(juce::Graphics & g,
         g.drawFittedText(text, r.toNearestInt(), juce::Justification::centred, 1);
     }
 }
+
+void LookAndFeel::drawToggleButton(juce::Graphics& g,
+    juce::ToggleButton& toggleButton,
+    bool shouldDrawButtonAsHighlighted,
+    bool shouldDrawButtonAsDown)
+{
+    using namespace juce;
+
+    Path powerButton;
+
+    auto bounds = toggleButton.getLocalBounds();
+    auto size = jmin(bounds.getWidth(), bounds.getHeight()) - 6;
+    auto r = bounds.withSizeKeepingCentre(size, size);
+
+
+  
+}
+
 //==============================================================================
 
 void RotarySliderWithLabels::paint(juce::Graphics& g)
@@ -307,22 +325,30 @@ void ResponseCurveComponent::paint(juce::Graphics& g)
         if (!monoChain.isBypassed<ChainPositions::Peak>())
             mag *= peak.coefficients->getMagnitudeForFrequency(freq, sampleRate);
 
-        if (!lowcut.isBypassed<0>())
-            mag *= lowcut.get<0>().coefficients->getMagnitudeForFrequency(freq, sampleRate); // TO:DO Refactor
-        if (!lowcut.isBypassed<1>())
-            mag *= lowcut.get<1>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-        if (!lowcut.isBypassed<2>())
-            mag *= lowcut.get<2>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-        if (!lowcut.isBypassed<3>())
-            mag *= lowcut.get<3>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-        if (!highcut.isBypassed<0>())
-            mag *= highcut.get<0>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-        if (!highcut.isBypassed<1>())
-            mag *= highcut.get<1>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-        if (!highcut.isBypassed<2>())
-            mag *= highcut.get<2>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-        if (!highcut.isBypassed<3>())
-            mag *= highcut.get<3>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+        if (!monoChain.isBypassed<ChainPositions::LowCut>())
+        {
+            if (!lowcut.isBypassed<0>())
+                mag *= lowcut.get<0>().coefficients->getMagnitudeForFrequency(freq, sampleRate); // TO:DO Refactor
+            if (!lowcut.isBypassed<1>())
+                mag *= lowcut.get<1>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+            if (!lowcut.isBypassed<2>())
+                mag *= lowcut.get<2>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+            if (!lowcut.isBypassed<3>())
+                mag *= lowcut.get<3>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+
+        }
+        
+        if (!monoChain.isBypassed<ChainPositions::HighCut>())
+        {
+            if (!highcut.isBypassed<0>())
+                mag *= highcut.get<0>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+            if (!highcut.isBypassed<1>())
+                mag *= highcut.get<1>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+            if (!highcut.isBypassed<2>())
+                mag *= highcut.get<2>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+            if (!highcut.isBypassed<3>())
+                mag *= highcut.get<3>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+        }
 
         magnitudes[freqItr] = Decibels::gainToDecibels(mag);
     }
@@ -549,11 +575,18 @@ TokyoEQAudioProcessorEditor::TokyoEQAudioProcessorEditor(TokyoEQAudioProcessor& 
         addAndMakeVisible(comp);
     }
 
+    peakBypassButton.setLookAndFeel(&lnf);
+    lowCutBypassedButton.setLookAndFeel(&lnf);
+    highCutBypassButton.setLookAndFeel(&lnf);
+
     setSize(600, 480); // Window Size
 }
 
 TokyoEQAudioProcessorEditor::~TokyoEQAudioProcessorEditor()
 {
+    peakBypassButton.setLookAndFeel(nullptr);
+    lowCutBypassedButton.setLookAndFeel(nullptr);
+    highCutBypassButton.setLookAndFeel(nullptr);
 }
 
 ////==============================================================================
