@@ -20,34 +20,44 @@ struct CustomRotarySlider : Slider
     }
 };
 
+
+struct ResponseCurveComponent : Component,
+    AudioProcessorParameter::Listener,
+    Timer
+{
+    ResponseCurveComponent(TokyoEQAudioProcessor&);
+    ~ResponseCurveComponent();
+
+    void parameterValueChanged(int parameterIndex, float newValue) override;
+    void parameterGestureChanged(int parameterIndex, bool gestureIsStarting) override { };
+    void timerCallback() override;
+
+    void paint(Graphics& g) override;
+    void resized() override;
+
+private:
+    TokyoEQAudioProcessor& audioProcessor;
+    Atomic<bool> parametersChanged{ false };
+    MonoChain monoChain;
+};
 //==============================================================================
 /**
 */
-class TokyoEQAudioProcessorEditor  : public juce::AudioProcessorEditor,
-    AudioProcessorParameter::Listener, // needs thread safety and efficiency
-    Timer
+class TokyoEQAudioProcessorEditor  : public juce::AudioProcessorEditor
 {
 public:
     TokyoEQAudioProcessorEditor (TokyoEQAudioProcessor&);
     ~TokyoEQAudioProcessorEditor() override;
 
     //==============================================================================
-    void paint (juce::Graphics&) override;
+    void paint (Graphics&) override;
     void resized() override;
 
-    //==============================================================================
-    void parameterValueChanged(int parameterIndex, float newValue) override;
-    void parameterGestureChanged(int parameterIndex, bool gestureIsStarting) override { };
-    void timerCallback() override;
 
 private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     TokyoEQAudioProcessor& audioProcessor;
-
-    // Atomic flag
-    Atomic<bool> parametersChanged{ false };
-
 
     // Sliders
     CustomRotarySlider peakFreqSlider,
@@ -57,6 +67,8 @@ private:
         highCutFreqSlider,
         lowCutSlopeSlider,
         highCutSlopeSlider;
+
+    ResponseCurveComponent responseCurveComponent;
 
 
     using APVTS = AudioProcessorValueTreeState;
@@ -70,11 +82,7 @@ private:
         lowCutSlopeSliderAttachment,
         highCutSlopeSliderAttachment;
 
-
     std::vector<Component*> getComps();
-
-    MonoChain monoChain;
-
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TokyoEQAudioProcessorEditor)
 };
