@@ -11,27 +11,25 @@
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
 
-// loon & feel to draw rotary sliders
-  
+// Look & feel to draw rotary sliders
  struct LookAndFeel : juce::LookAndFeel_V4
 {
-     void drawLinearSlider(juce::Graphics&,
+     void drawRotarySlider(juce::Graphics& g,
          int x, int y, int width, int height,
-         float sliderPos,
-         float minSliderPos,
-         float maxSliderPos,
-         const juce::Slider::SliderStyle,
-         juce::Slider&) override {}
+         float sliderPosProportional,
+         float rotaryStartAngle,
+         float rotaryEndAngle,
+
+         juce::Slider& slider) override;
 };
 
 // Base class initialization for sliders
 struct RotarySliderWithLabels : juce::Slider
 {
     RotarySliderWithLabels(juce::RangedAudioParameter& rap, const juce::String& unitSuffix) : 
-        juce::Slider(juce::Slider::SliderStyle::RotaryHorizontalDrag,
-            juce::Slider::TextEntryBoxPosition::NoTextBox),
-        param(&rap),                         
-        suffix(unitSuffix)
+                           juce::Slider(juce::Slider::SliderStyle::RotaryHorizontalDrag,
+                           juce::Slider::TextEntryBoxPosition::NoTextBox), param(&rap),                         
+                           suffix(unitSuffix)
     {
         setLookAndFeel(&lnf);
     }
@@ -41,7 +39,7 @@ struct RotarySliderWithLabels : juce::Slider
         setLookAndFeel(nullptr);
     }
 
-    void paint(juce::Graphics& g) override {}
+    void paint(juce::Graphics& g) override;
     juce::Rectangle<int> getSliderBounds() const;
     int getTextHeight() const { return 14; }
     juce::String getDisplayString() const;
