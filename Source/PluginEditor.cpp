@@ -9,9 +9,6 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
-
-// Migrate listener code
-
 ResponseCurveComponent::ResponseCurveComponent(TokyoEQAudioProcessor& p) : audioProcessor(p)
 {
     const auto& params = audioProcessor.getParameters();
@@ -41,7 +38,6 @@ void ResponseCurveComponent::timerCallback()
 {
     if (parametersChanged.compareAndSetBool(false, true))
     {
-
         DBG("params changed");
 
         //update monochain
@@ -56,16 +52,16 @@ void ResponseCurveComponent::timerCallback()
         updateCutFilter(monoChain.get<ChainPositions::HighCut>(), highCutCoefficients, chainSettings.highCutSlope);
         //signal repaint for new response curve
         repaint();
-
     }
 }
 
 void ResponseCurveComponent::paint(juce::Graphics& g)
 {
+
+
     g.fillAll(Colours::black);
 
     auto responseArea = getLocalBounds();
-  
     auto width = responseArea.getWidth();
 
     auto& lowcut = monoChain.get<ChainPositions::LowCut>();
@@ -129,10 +125,6 @@ void ResponseCurveComponent::paint(juce::Graphics& g)
 
 }
 
-void ResponseCurveComponent::resized()
-{
-    
-}
 //==============================================================================
 TokyoEQAudioProcessorEditor::TokyoEQAudioProcessorEditor(TokyoEQAudioProcessor& p)
     : AudioProcessorEditor(&p), audioProcessor(p),

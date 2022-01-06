@@ -33,7 +33,6 @@ struct ResponseCurveComponent : Component,
     void timerCallback() override;
 
     void paint(Graphics& g) override;
-    void resized() override;
 
 private:
     TokyoEQAudioProcessor& audioProcessor;
@@ -55,12 +54,10 @@ public:
 
 
 private:
-    // This reference is provided as a quick way for your editor to
-    // access the processor object that created it.
+  
     TokyoEQAudioProcessor& audioProcessor;
 
-    // Sliders
-    CustomRotarySlider peakFreqSlider,
+    CustomRotarySlider peakFreqSlider, // sliders
         peakGainSlider,
         peakQualitySlider,
         lowCutFreqSlider,
@@ -69,7 +66,6 @@ private:
         highCutSlopeSlider;
 
     ResponseCurveComponent responseCurveComponent;
-
 
     using APVTS = AudioProcessorValueTreeState;
     using Attachment = APVTS::SliderAttachment;
