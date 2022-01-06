@@ -34,30 +34,9 @@ void ResponseCurveComponent::parameterValueChanged(int parameterIndex, float new
     parametersChanged.set(true);
 }
 
-void ResponseCurveComponent::timerCallback()
-{
-    if (parametersChanged.compareAndSetBool(false, true))
-    {
-        DBG("params changed");
-
-        //update monochain
-        auto chainSettings = getChainSettings(audioProcessor.apvts);
-        auto peakCoefficients = makePeakFilter(chainSettings, audioProcessor.getSampleRate());
-        updateCoefficients(monoChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
-
-        auto lowCutCoefficients = makeLowCutFilter(chainSettings, audioProcessor.getSampleRate());
-        auto highCutCoefficients = makeHighCutFilter(chainSettings, audioProcessor.getSampleRate());
-
-        updateCutFilter(monoChain.get<ChainPositions::LowCut>(), lowCutCoefficients, chainSettings.lowCutSlope);
-        updateCutFilter(monoChain.get<ChainPositions::HighCut>(), highCutCoefficients, chainSettings.highCutSlope);
-        //signal repaint for new response curve
-        repaint();
-    }
-}
-
 void ResponseCurveComponent::paint(juce::Graphics& g)
 {
-
+    using namespace juce;
 
     g.fillAll(Colours::black);
 
@@ -79,7 +58,7 @@ void ResponseCurveComponent::paint(juce::Graphics& g)
     for (int freqItr = 0; freqItr < width; ++freqItr)
     {
         double mag = 1.f;
-        auto freq = mapToLog10(double(freqItr) / double(width), 20.0, 20000.0);
+        auto freq = juce::mapToLog10(double(freqItr) / double(width), 20.0, 20000.0);
 
         if (!monoChain.isBypassed<ChainPositions::Peak>())
             mag *= peak.coefficients->getMagnitudeForFrequency(freq, sampleRate);
@@ -125,6 +104,27 @@ void ResponseCurveComponent::paint(juce::Graphics& g)
 
 }
 
+void ResponseCurveComponent::timerCallback()
+{
+    if (parametersChanged.compareAndSetBool(false, true))
+    {
+        DBG("params changed");
+
+        //update monochain
+        auto chainSettings = getChainSettings(audioProcessor.apvts);
+        auto peakCoefficients = makePeakFilter(chainSettings, audioProcessor.getSampleRate());
+        updateCoefficients(monoChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
+
+        auto lowCutCoefficients = makeLowCutFilter(chainSettings, audioProcessor.getSampleRate());
+        auto highCutCoefficients = makeHighCutFilter(chainSettings, audioProcessor.getSampleRate());
+
+        updateCutFilter(monoChain.get<ChainPositions::LowCut>(), lowCutCoefficients, chainSettings.lowCutSlope);
+        updateCutFilter(monoChain.get<ChainPositions::HighCut>(), highCutCoefficients, chainSettings.highCutSlope);
+        //signal repaint for new response curve
+        repaint();
+    }
+}
+
 //==============================================================================
 TokyoEQAudioProcessorEditor::TokyoEQAudioProcessorEditor(TokyoEQAudioProcessor& p)
     : AudioProcessorEditor(&p), audioProcessor(p),
@@ -153,7 +153,7 @@ TokyoEQAudioProcessorEditor::~TokyoEQAudioProcessorEditor()
 ////==============================================================================
 void TokyoEQAudioProcessorEditor::paint(juce::Graphics& g)
 {
-    g.fillAll(Colours::black);
+    g.fillAll(juce::Colours::black);
 }
 
 void TokyoEQAudioProcessorEditor::resized()
@@ -178,7 +178,7 @@ void TokyoEQAudioProcessorEditor::resized()
     peakQualitySlider.setBounds(bounds);
 }
 
-std::vector<Component*> TokyoEQAudioProcessorEditor::getComps()
+std::vector<juce::Component*> TokyoEQAudioProcessorEditor::getComps()
 {
     return
     {

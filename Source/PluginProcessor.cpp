@@ -96,7 +96,7 @@ void TokyoEQAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBloc
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
 
-    dsp::ProcessSpec spec;
+    juce::dsp::ProcessSpec spec;
     spec.maximumBlockSize = samplesPerBlock;
     spec.numChannels = 1;
     spec.sampleRate = sampleRate;
@@ -161,12 +161,12 @@ void TokyoEQAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce
     updateAllFilters();
 
     // Audio blocks for each channel
-    dsp::AudioBlock<float> block(buffer);
+    juce::dsp::AudioBlock<float> block(buffer);
     auto leftBlock = block.getSingleChannelBlock(0);
     auto rightBlock = block.getSingleChannelBlock(1);
 
-    dsp::ProcessContextReplacing<float> leftContext(leftBlock);
-    dsp::ProcessContextReplacing<float> rightContext(rightBlock);
+    juce::dsp::ProcessContextReplacing<float> leftContext(leftBlock);
+    juce::dsp::ProcessContextReplacing<float> rightContext(rightBlock);
 
     leftChain.process(leftContext);
     rightChain.process(rightContext);
@@ -189,14 +189,14 @@ juce::AudioProcessorEditor* TokyoEQAudioProcessor::createEditor()
 void TokyoEQAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     // store parameters in the memory block.
-    MemoryOutputStream mos(destData, true);
+    juce::MemoryOutputStream mos(destData, true);
     apvts.state.writeToStream(mos);
 }
 
 void TokyoEQAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     // restore parameters from this memory block,
-    auto tree = ValueTree::readFromData(data, sizeInBytes);
+    auto tree = juce::ValueTree::readFromData(data, sizeInBytes);
     if (tree.isValid())
     {
         apvts.replaceState(tree);
@@ -204,7 +204,7 @@ void TokyoEQAudioProcessor::setStateInformation (const void* data, int sizeInByt
     }
 }
 
-ChainSettings getChainSettings(AudioProcessorValueTreeState& apvts) // init params
+ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts) // init params
 {
     
     ChainSettings settings;
@@ -221,10 +221,10 @@ ChainSettings getChainSettings(AudioProcessorValueTreeState& apvts) // init para
 
 Coefficients makePeakFilter(const ChainSettings& chainSettings, double sampleRate)
 {
-    return dsp::IIR::Coefficients<float>::makePeakFilter(sampleRate,
+    return juce::dsp::IIR::Coefficients<float>::makePeakFilter(sampleRate,
         chainSettings.peakFreq,
         chainSettings.peakQuality,
-        Decibels::decibelsToGain(chainSettings.peakGainInDecibles));
+        juce::Decibels::decibelsToGain(chainSettings.peakGainInDecibles));
 }
 
 void TokyoEQAudioProcessor::updatePeakFilter(const ChainSettings& chainSettings)
@@ -271,9 +271,9 @@ void TokyoEQAudioProcessor::updateAllFilters()
     updateHighCutFilters(chainSettings);
 }
 
-AudioProcessorValueTreeState::ParameterLayout TokyoEQAudioProcessor::createParameterLayout()
+juce::AudioProcessorValueTreeState::ParameterLayout TokyoEQAudioProcessor::createParameterLayout()
 {
-    AudioProcessorValueTreeState::ParameterLayout layout;
+    juce::AudioProcessorValueTreeState::ParameterLayout layout;
 
     //Deals with range slider is sensitive to changing
     float lowCutSkew = 0.25f;
@@ -283,33 +283,33 @@ AudioProcessorValueTreeState::ParameterLayout TokyoEQAudioProcessor::createParam
     float PeakQualitySkew = 0.25f;
 
 
-    layout.add(std::make_unique<AudioParameterFloat>("LowCut Freq", "LowCut Freq", 
-        NormalisableRange<float>(20.f, 20000.f, 1.f, lowCutSkew), 20.f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("LowCut Freq", "LowCut Freq", 
+        juce::NormalisableRange<float>(20.f, 20000.f, 1.f, lowCutSkew), 20.f));
 
-    layout.add(std::make_unique<AudioParameterFloat>("HighCut Freq", "HighCut Freq",
-        NormalisableRange<float>(20.f, 20000.f, 1.f, HighCutSkew), 20000.f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("HighCut Freq", "HighCut Freq",
+        juce::NormalisableRange<float>(20.f, 20000.f, 1.f, HighCutSkew), 20000.f));
 
-    layout.add(std::make_unique<AudioParameterFloat>("Peak Freq", "Peak Freq",
-        NormalisableRange<float>(20.f, 20000.f, 1.f, PeakFreqSkew), 750.f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("Peak Freq", "Peak Freq",
+        juce::NormalisableRange<float>(20.f, 20000.f, 1.f, PeakFreqSkew), 750.f));
 
-    layout.add(std::make_unique<AudioParameterFloat>("Peak Gain", "Peak Gain",
-        NormalisableRange<float>(-24.f, 24.f, 0.5f, PeakGainSkew), 0.0f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("Peak Gain", "Peak Gain",
+        juce::NormalisableRange<float>(-24.f, 24.f, 0.5f, PeakGainSkew), 0.0f));
 
-    layout.add(std::make_unique<AudioParameterFloat>("Peak Quality", "Peak Quality",
-        NormalisableRange<float>(0.1f, 10.f, 0.05f, PeakQualitySkew), 1.f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("Peak Quality", "Peak Quality",
+        juce::NormalisableRange<float>(0.1f, 10.f, 0.05f, PeakQualitySkew), 1.f));
 
 
-    StringArray stringArray;
+    juce::StringArray stringArray;
     for (int i = 0; i < 4; ++i)
     {
-        String str;
+        juce::String str;
         str << (12 + i * 12);
         str << " db/Oct";
         stringArray.add(str);
     }
 
-    layout.add(std::make_unique<AudioParameterChoice>("LowCut Slope", "LowCut Slope", stringArray, 0));
-    layout.add(std::make_unique<AudioParameterChoice>("HighCut Slope", "HighCut Slope", stringArray, 0));
+    layout.add(std::make_unique<juce::AudioParameterChoice>("LowCut Slope", "LowCut Slope", stringArray, 0));
+    layout.add(std::make_unique<juce::AudioParameterChoice>("HighCut Slope", "HighCut Slope", stringArray, 0));
 
     return layout;
 }

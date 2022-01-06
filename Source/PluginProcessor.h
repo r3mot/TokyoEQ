@@ -28,10 +28,10 @@ struct ChainSettings
 };
 
 // Helper function to get all param values from ChainSettings
-ChainSettings getChainSettings(AudioProcessorValueTreeState& apvts);
-using Filter = dsp::IIR::Filter<float>;
-using CutFilter = dsp::ProcessorChain<Filter, Filter, Filter, Filter>;
-using MonoChain = dsp::ProcessorChain<CutFilter, Filter, CutFilter>;
+ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts);
+using Filter = juce::dsp::IIR::Filter<float>;
+using CutFilter = juce::dsp::ProcessorChain<Filter, Filter, Filter, Filter>;
+using MonoChain = juce::dsp::ProcessorChain<CutFilter, Filter, CutFilter>;
 
 enum ChainPositions
 {
@@ -87,13 +87,13 @@ void updateCutFilter(ChainType& chain, const CoefficientType& coefficients, cons
 
 inline auto makeLowCutFilter(const ChainSettings& chainSettings, double sampleRate)
 {
-    return dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(chainSettings.lowCutFreq, sampleRate,
+    return juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(chainSettings.lowCutFreq, sampleRate,
         2 * (chainSettings.lowCutSlope + 1));
 }
 
 inline auto makeHighCutFilter(const ChainSettings& chainSettings, double sampleRate)
 {
-    return dsp::FilterDesign<float>::designIIRLowpassHighOrderButterworthMethod(chainSettings.highCutFreq, sampleRate,
+    return juce::dsp::FilterDesign<float>::designIIRLowpassHighOrderButterworthMethod(chainSettings.highCutFreq, sampleRate,
         2 * (chainSettings.highCutSlope + 1));
 }
 
@@ -140,8 +140,8 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
-    static AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
-    AudioProcessorValueTreeState apvts { *this, nullptr, "Parameters", createParameterLayout() };
+    static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
+    juce::AudioProcessorValueTreeState apvts { *this, nullptr, "Parameters", createParameterLayout() };
 
 
 private:

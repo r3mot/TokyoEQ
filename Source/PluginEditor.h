@@ -12,18 +12,21 @@
 #include "PluginProcessor.h"
 
 // Base class initialization for sliders
-struct CustomRotarySlider : Slider
+struct RotarySliderWithLabels : juce::Slider
 {
-    CustomRotarySlider() : Slider(Slider::SliderStyle::RotaryHorizontalDrag, Slider::TextEntryBoxPosition::NoTextBox)
+    RotarySliderWithLabels() : juce::Slider(juce::Slider::SliderStyle::RotaryHorizontalDrag, 
+                                            juce::Slider::TextEntryBoxPosition::NoTextBox)
     {
         
     }
+private:
+ 
 };
 
 
-struct ResponseCurveComponent : Component,
-    AudioProcessorParameter::Listener,
-    Timer
+struct ResponseCurveComponent : juce::Component,
+    juce::AudioProcessorParameter::Listener,
+    juce::Timer
 {
     ResponseCurveComponent(TokyoEQAudioProcessor&);
     ~ResponseCurveComponent();
@@ -32,11 +35,11 @@ struct ResponseCurveComponent : Component,
     void parameterGestureChanged(int parameterIndex, bool gestureIsStarting) override { };
     void timerCallback() override;
 
-    void paint(Graphics& g) override;
+    void paint(juce::Graphics& g) override;
 
 private:
     TokyoEQAudioProcessor& audioProcessor;
-    Atomic<bool> parametersChanged{ false };
+    juce::Atomic<bool> parametersChanged{ false };
     MonoChain monoChain;
 };
 //==============================================================================
@@ -49,7 +52,7 @@ public:
     ~TokyoEQAudioProcessorEditor() override;
 
     //==============================================================================
-    void paint (Graphics&) override;
+    void paint (juce::Graphics&) override;
     void resized() override;
 
 
@@ -57,7 +60,7 @@ private:
   
     TokyoEQAudioProcessor& audioProcessor;
 
-    CustomRotarySlider peakFreqSlider, // sliders
+    RotarySliderWithLabels peakFreqSlider, // sliders
         peakGainSlider,
         peakQualitySlider,
         lowCutFreqSlider,
@@ -67,7 +70,7 @@ private:
 
     ResponseCurveComponent responseCurveComponent;
 
-    using APVTS = AudioProcessorValueTreeState;
+    using APVTS = juce::AudioProcessorValueTreeState;
     using Attachment = APVTS::SliderAttachment;
 
     Attachment peakFreqSliderAttachment,

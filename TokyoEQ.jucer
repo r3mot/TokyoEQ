@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="LjfEf3" name="TokyoEQ" projectType="audioplug" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="1" displaySplashScreen="1" jucerFormatVersion="1"
+              addUsingNamespaceToJuceHeader="0" displaySplashScreen="1" jucerFormatVersion="1"
               cppLanguageStandard="17" companyName="BedRestAudio">
   <MAINGROUP id="jZcLMk" name="TokyoEQ">
     <GROUP id="{5D09A3D5-04C7-11D9-1FEA-7FE6B236C1E5}" name="Source">
