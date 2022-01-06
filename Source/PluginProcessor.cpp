@@ -91,7 +91,7 @@ void TokyoEQAudioProcessor::changeProgramName (int index, const juce::String& ne
 }
 
 //==============================================================================
-void TokyoEQAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
+void TokyoEQAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
@@ -112,6 +112,12 @@ void TokyoEQAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBloc
     leftChannelFifo.prepare(samplesPerBlock);
     rightChannelFifo.prepare(samplesPerBlock);
 
+    osc.initialise([](float x) { return std::sin(x); });
+
+    spec.numChannels = getTotalNumOutputChannels();
+    osc.prepare(spec);
+    osc.setFrequency(50);
+        
 }
 
 void TokyoEQAudioProcessor::releaseResources()
@@ -166,6 +172,12 @@ void TokyoEQAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce
 
     // Audio blocks for each channel
     juce::dsp::AudioBlock<float> block(buffer);
+
+    // accuracy debug
+    //buffer.clear();
+    //juce::dsp::ProcessContextReplacing<float> stereoContext(block);
+    //osc.process(stereoContext);
+
     auto leftBlock = block.getSingleChannelBlock(0);
     auto rightBlock = block.getSingleChannelBlock(1);
 
