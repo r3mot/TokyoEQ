@@ -24,11 +24,28 @@ TokyoEQAudioProcessorEditor::TokyoEQAudioProcessorEditor(TokyoEQAudioProcessor& 
     {
         addAndMakeVisible(comp);
     }
+
+    // Add ourselves as listener to audio processor
+    const auto& params = audioProcessor.getParameters();
+    for (auto param : params)
+    {
+        param->addListener(this);
+    }
+
+    // 60HZ refresh
+    startTimerHz(60);
+
     setSize(600, 400); // Window Size
 }
 
 TokyoEQAudioProcessorEditor::~TokyoEQAudioProcessorEditor()
 {
+    const auto& params = audioProcessor.getParameters();
+    for (auto param : params)
+    {
+        param->removeListener(this);
+    }
+
 }
 
 //==============================================================================
@@ -132,8 +149,17 @@ void TokyoEQAudioProcessorEditor::timerCallback()
 {
     if (parametersChanged.compareAndSetBool(false, true))
     {
+
+        DBG("params changed");
+
         //update monochain
+        auto chainSettings = getChainSettings(audioProcessor.apvts);
+        auto peakCoefficients = makePeakFilter(chainSettings, audioProcessor.getSampleRate());
+        updateCoefficients(monoChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
+
+
         //signal repaint for new response curve
+        repaint();
 
     }
 }
