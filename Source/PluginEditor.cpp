@@ -263,6 +263,11 @@ void ResponseCurveComponent::timerCallback()
 void ResponseCurveComponent::updateChain()
 {
     auto chainSettings = getChainSettings(audioProcessor.apvts);
+
+    monoChain.setBypassed<ChainPositions::LowCut>(chainSettings.lowCutBypassed);
+    monoChain.setBypassed<ChainPositions::Peak>(chainSettings.peakBypassed);
+    monoChain.setBypassed<ChainPositions::HighCut>(chainSettings.highCutBypassed);
+
     auto peakCoefficients = makePeakFilter(chainSettings, audioProcessor.getSampleRate());
     updateCoefficients(monoChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
 
@@ -494,24 +499,28 @@ juce::Rectangle<int> ResponseCurveComponent::getAnalysisArea()
 
 TokyoEQAudioProcessorEditor::TokyoEQAudioProcessorEditor(TokyoEQAudioProcessor& p)
     : AudioProcessorEditor(&p), audioProcessor(p),
-    peakFreqSlider      (*audioProcessor.apvts.getParameter("Peak Freq"), "Hz"),
-    peakGainSlider      (*audioProcessor.apvts.getParameter("Peak Gain"), "dB"),
-    peakQualitySlider   (*audioProcessor.apvts.getParameter("Peak Quality"), ""),
-    lowCutFreqSlider    (*audioProcessor.apvts.getParameter("LowCut Freq"), "Hz"),
-    highCutFreqSlider   (*audioProcessor.apvts.getParameter("HiCut Freq"), "Hz"),
-    lowCutSlopeSlider   (*audioProcessor.apvts.getParameter("LowCut Slope"), "dB/Oct"),
-    highCutSlopeSlider  (*audioProcessor.apvts.getParameter("HighCut Slope"), "dB/Oct"),
+    peakFreqSlider(*audioProcessor.apvts.getParameter("Peak Freq"), "Hz"),
+    peakGainSlider(*audioProcessor.apvts.getParameter("Peak Gain"), "dB"),
+    peakQualitySlider(*audioProcessor.apvts.getParameter("Peak Quality"), ""),
+    lowCutFreqSlider(*audioProcessor.apvts.getParameter("LowCut Freq"), "Hz"),
+    highCutFreqSlider(*audioProcessor.apvts.getParameter("HiCut Freq"), "Hz"),
+    lowCutSlopeSlider(*audioProcessor.apvts.getParameter("LowCut Slope"), "dB/Oct"),
+    highCutSlopeSlider(*audioProcessor.apvts.getParameter("HighCut Slope"), "dB/Oct"),
 
 
     responseCurveComponent(audioProcessor),
-    peakFreqSliderAttachment(audioProcessor.apvts,      "Peak Freq",        peakFreqSlider),
-    peakGainSliderAttachment(audioProcessor.apvts,      "Peak Gain",        peakGainSlider),
+    peakFreqSliderAttachment(audioProcessor.apvts, "Peak Freq", peakFreqSlider),
+    peakGainSliderAttachment(audioProcessor.apvts, "Peak Gain", peakGainSlider),
     peakQualitySliderAttachment(audioProcessor.apvts, "Peak Quality", peakQualitySlider),
     lowCutFreqSliderAttachment(audioProcessor.apvts, "LowCut Freq", lowCutFreqSlider),
     highCutFreqSliderAttachment(audioProcessor.apvts, "HighCut Freq", highCutFreqSlider),
     lowCutSlopeSliderAttachment(audioProcessor.apvts, "LowCut Slope", lowCutSlopeSlider),
-    highCutSlopeSliderAttachment(audioProcessor.apvts, "HighCut Slope", highCutSlopeSlider)
+    highCutSlopeSliderAttachment(audioProcessor.apvts, "HighCut Slope", highCutSlopeSlider),
 
+    lowCutBypassedButtonAttachment(audioProcessor.apvts, "LowCut Bypassed", lowCutBypassedButton),
+    peakBypassButtonAttachment(audioProcessor.apvts, "Peak Bypassed", peakBypassButton),
+    highCutBypassButtonAttachment(audioProcessor.apvts, "HighCut Bypassed", highCutBypassButton),
+    analyzerEnabledButtonAttachment(audioProcessor.apvts, "Analyzer Enabled", analyzerEnabledButton)
 {
 
     peakFreqSlider.labels.add({ 0.f, "20Hz" });
@@ -557,24 +566,26 @@ void TokyoEQAudioProcessorEditor::paint(juce::Graphics& g)
 void TokyoEQAudioProcessorEditor::resized()
 {
     // component positions
-    auto bounds         = getLocalBounds();
-
+    auto bounds = getLocalBounds();
     float hRatio = 25.f / 100.f; //JUCE_LIVE_CONSTANT(33) / 100.f;
-    auto responseArea   = bounds.removeFromTop(bounds.getHeight() * 0.33);
+    auto responseArea   = bounds.removeFromTop(bounds.getHeight() * hRatio);
+
+    responseCurveComponent.setBounds(responseArea);
 
     bounds.removeFromTop(5);
 
     auto lowCutArea     = bounds.removeFromLeft(bounds.getWidth() * 0.33);
     auto highCutArea    = bounds.removeFromRight(bounds.getWidth() * 0.5);
 
-    responseCurveComponent.setBounds(responseArea);
-
+    lowCutBypassedButton.setBounds(lowCutArea.removeFromTop(25));
     lowCutFreqSlider.setBounds(lowCutArea.removeFromTop(lowCutArea.getHeight() * 0.5));
     lowCutSlopeSlider.setBounds(lowCutArea);
 
+    highCutBypassButton.setBounds(highCutArea.removeFromTop(25));
     highCutFreqSlider.setBounds(highCutArea.removeFromTop(highCutArea.getHeight() * 0.5));
     highCutSlopeSlider.setBounds(highCutArea);
 
+    peakBypassButton.setBounds(bounds.removeFromTop(25));
     peakFreqSlider.setBounds(bounds.removeFromTop(bounds.getHeight() * 0.33));
     peakGainSlider.setBounds(bounds.removeFromTop(bounds.getHeight() * 0.5));
     peakQualitySlider.setBounds(bounds);
@@ -591,6 +602,11 @@ std::vector<juce::Component*> TokyoEQAudioProcessorEditor::getComps()
         &highCutFreqSlider,
         &lowCutSlopeSlider,
         &highCutSlopeSlider,
-        &responseCurveComponent
+        &responseCurveComponent,
+
+        &lowCutBypassedButton,
+        &peakBypassButton,
+        &highCutBypassButton,
+        &analyzerEnabledButton
     };
 }
