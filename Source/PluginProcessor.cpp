@@ -219,19 +219,24 @@ ChainSettings getChainSettings(AudioProcessorValueTreeState& apvts) // init para
     return settings;
 }
 
-void TokyoEQAudioProcessor::updatePeakFilter(const ChainSettings& chainSettings)
+Coefficients makePeakFilter(const ChainSettings& chainSettings, double sampleRate)
 {
-    auto peakCoefficients = dsp::IIR::Coefficients<float>::makePeakFilter(getSampleRate(),
+    return dsp::IIR::Coefficients<float>::makePeakFilter(sampleRate,
         chainSettings.peakFreq,
         chainSettings.peakQuality,
         Decibels::decibelsToGain(chainSettings.peakGainInDecibles));
+}
 
+void TokyoEQAudioProcessor::updatePeakFilter(const ChainSettings& chainSettings)
+{
+
+    auto peakCoefficients = makePeakFilter(chainSettings, getSampleRate());
     updateCoefficients(leftChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
     updateCoefficients(rightChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
 
 }
 
-void TokyoEQAudioProcessor::updateCoefficients(Coefficients& old, const Coefficients& replacements)
+void updateCoefficients(Coefficients& old, const Coefficients& replacements)
 {
     // reference counted obj allocated on heap, needs derefference
     *old = *replacements;

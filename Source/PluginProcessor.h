@@ -29,8 +29,21 @@ struct ChainSettings
 
 // Helper function to get all param values from ChainSettings
 ChainSettings getChainSettings(AudioProcessorValueTreeState& apvts);
+using Filter = dsp::IIR::Filter<float>;
+using CutFilter = dsp::ProcessorChain<Filter, Filter, Filter, Filter>;
+using MonoChain = dsp::ProcessorChain<CutFilter, Filter, CutFilter>;
 
+enum ChainPositions
+{
+    LowCut,
+    Peak,
+    HighCut
+};
 
+using Coefficients = Filter::CoefficientsPtr;
+void updateCoefficients(Coefficients& old, const Coefficients& replacements);
+
+Coefficients makePeakFilter(const ChainSettings& chainSettings, double sampleRate);
 //==============================================================================
 /**
 */
@@ -80,22 +93,10 @@ public:
 
 private:
 
-    enum ChainPositions
-    {
-        LowCut,
-        Peak,
-        HighCut
-    };
-
-    using Filter        = dsp::IIR::Filter<float>;
-    using CutFilter     = dsp::ProcessorChain<Filter, Filter, Filter, Filter>;
-    using Monochain     = dsp::ProcessorChain<CutFilter, Filter, CutFilter>;
-    using Coefficients  = Filter::CoefficientsPtr;
-
-    Monochain leftChain, rightChain;
+    MonoChain leftChain, rightChain;
 
     void updatePeakFilter(const ChainSettings& chainSettings);
-    static void updateCoefficients(Coefficients& old, const Coefficients& replacements);
+    
     
     //==============================================================================
     template<int Index, typename ChainType, typename CoefficientType>
