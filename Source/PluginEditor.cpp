@@ -297,9 +297,9 @@ void ResponseCurveComponent::resized()
 
     Array<float> freqs //Freqency lines to window space
     {
-        20, 30, 40, 50, 100,
-        200, 300, 400, 500, 1000,
-        2000, 3000, 4000, 5000, 10000,
+        20, /*30, 40,*/ 50, 100,
+        200, /*300, 400,*/ 500, 1000,
+        2000, /*3000, 4000,*/ 5000, 10000,
         20000 // top of hearing range
     };
 
