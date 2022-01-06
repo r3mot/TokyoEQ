@@ -22,32 +22,46 @@ void LookAndFeel::drawRotarySlider(juce::Graphics & g,
     using namespace juce;
     auto bounds = Rectangle<float>(x, y, width, height);
     
+    // Draw Circles
     g.setColour(Colour(244u, 236u, 227u)); // base
     g.fillEllipse(bounds);
-
     g.setColour(Colour(20u, 21u, 24u)); // border
     g.drawEllipse(bounds, 1.f);
 
-    auto center = bounds.getCentre();
+    if (auto* rswl = dynamic_cast<RotarySliderWithLabels*>(&slider))
+    {
+        auto center = bounds.getCentre();
+        Path p; // define path for rotation
+        Rectangle<float> r;
+        r.setLeft(center.getX() - 2);
+        r.setRight(center.getX() + 2);
+        r.setTop(bounds.getY());
+        r.setBottom(center.getY() - rswl->getTextHeight() * 1.5);
 
-    Path p; // define path for rotation
-    Rectangle<float> r;
-    r.setLeft(center.getX() - 2);
-    r.setRight(center.getX() + 2);
-    r.setTop(bounds.getY());
-    r.setBottom(center.getY());
-    p.addRectangle(r);
+        p.addRoundedRectangle(r, 2.f);
+        p.addRectangle(r);
 
-    jassert(rotaryStartAngle < rotaryEndAngle); // smoothing
+        // ROTATION
+        jassert(rotaryStartAngle < rotaryEndAngle);
 
-    // mapping normalized starting value between two rotary pos
-    auto sliderAngRad = jmap(sliderPosProportional, 0.f, 1.f, rotaryStartAngle, rotaryEndAngle);
+        // mapping normalized starting value between two rotary pos
+        auto sliderAngRad = jmap(sliderPosProportional, 0.f, 1.f, rotaryStartAngle, rotaryEndAngle);
 
-    p.applyTransform(AffineTransform().rotated(sliderAngRad, center.getX(), center.getY()));
-    g.fillPath(p);
+        p.applyTransform(AffineTransform().rotated(sliderAngRad, center.getX(), center.getY()));
+        g.fillPath(p);
 
-    //Draw 
+        // Bounding box for text diplay
+        g.setFont(rswl->getTextHeight());
+        auto text = rswl->getDisplayString();
+        auto strWidth = g.getCurrentFont().getStringWidth(text);
 
+        r.setSize(strWidth + 4, rswl->getTextHeight() + 2);
+        r.setCentre(bounds.getCentre());
+        g.setColour(Colours::black);
+        g.fillRect(r);
+        g.setColour(Colours::white);
+        g.drawFittedText(text, r.toNearestInt(), juce::Justification::centred, 1);
+    }
 }
 //==============================================================================
 void RotarySliderWithLabels::paint(juce::Graphics& g)
@@ -90,6 +104,10 @@ juce::Rectangle<int> RotarySliderWithLabels::getSliderBounds() const
     return r;
 }
 
+juce::String RotarySliderWithLabels::getDisplayString() const
+{
+    return juce::String(getValue());
+}
 //==============================================================================
 ResponseCurveComponent::ResponseCurveComponent(TokyoEQAudioProcessor& p) : audioProcessor(p)
 {
