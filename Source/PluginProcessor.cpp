@@ -107,6 +107,10 @@ void TokyoEQAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBloc
     // produce coefficients
     updateAllFilters();
 
+    //==============================================================================
+
+    leftChannelFifo.prepare(samplesPerBlock);
+    rightChannelFifo.prepare(samplesPerBlock);
 
 }
 
@@ -171,6 +175,8 @@ void TokyoEQAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce
     leftChain.process(leftContext);
     rightChain.process(rightContext);
 
+    leftChannelFifo.update(buffer);
+    rightChannelFifo.update(buffer);
 }
 
 //==============================================================================

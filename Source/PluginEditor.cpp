@@ -166,13 +166,19 @@ juce::String RotarySliderWithLabels::getDisplayString() const
 
 //==============================================================================
 
-ResponseCurveComponent::ResponseCurveComponent(TokyoEQAudioProcessor& p) : audioProcessor(p)
+ResponseCurveComponent::ResponseCurveComponent(TokyoEQAudioProcessor& p) : 
+audioProcessor(p),
+leftChannelFifo(&audioProcessor.leftChannelFifo)
 {
     const auto& params = audioProcessor.getParameters();
     for (auto param : params)
     {
         param->addListener(this);
     }
+
+    //splitting up the audio spectrum
+    leftChannelFFTDataGen.changeOrder(FFTOrder::order2048);
+    monoBuffer.setSize(1, leftChannelFFTDataGen.getFFTSize());
 
     updateChain();
     startTimerHz(60);
@@ -194,13 +200,53 @@ void ResponseCurveComponent::parameterValueChanged(int parameterIndex, float new
 
 void ResponseCurveComponent::timerCallback()
 {
+
+    juce::AudioBuffer<float> tempIncomingBuffer;
+
+    while (leftChannelFifo->getNumCompleteBuffersAvailable() > 0) 
+    {
+        if (leftChannelFifo->getAudioBuffer(tempIncomingBuffer)) // if there are more than 0 buffers available
+        {
+            auto size = tempIncomingBuffer.getNumSamples(); // shifting data
+            juce::FloatVectorOperations::copy(monoBuffer.getWritePointer(0, 0),
+                                              monoBuffer.getReadPointer(0, size), //index size
+                                              monoBuffer.getNumSamples() - size); // shift
+
+            juce::FloatVectorOperations::copy(monoBuffer.getWritePointer(0, monoBuffer.getNumSamples() - size),
+                                              tempIncomingBuffer.getReadPointer(0, 0),
+                                              size);
+
+            leftChannelFFTDataGen.produceFFTDataForRendering(monoBuffer, -48.f);
+        }
+    }
+
+    const auto fftBounds = getAnalysisArea().toFloat();
+    const auto fftSize = leftChannelFFTDataGen.getFFTSize();
+    const auto binWidth = audioProcessor.getSampleRate() / (double)fftSize;
+
+    while (leftChannelFFTDataGen.getNumAvailableFFTDataBlocks() > 0)
+    {
+        std::vector<float> fftData;
+        if (leftChannelFFTDataGen.getFFTData(fftData)) // pull block
+        {
+            pathProducer.generatePath(fftData, fftBounds, fftSize, binWidth, -48.f);
+        }
+    }
+
+    while (pathProducer.getNumPathsAvailable())
+    {
+        pathProducer.getPath(leftChannelFFTPath);
+    }
+
     if (parametersChanged.compareAndSetBool(false, true))
     {
         DBG("params changed");
 
         updateChain(); //update monochain
-        repaint();     //signal repaint for new response curve
+        //repaint();     //signal repaint for new response curve
     }
+
+    repaint();
 }
 
 void ResponseCurveComponent::updateChain()
@@ -280,6 +326,9 @@ void ResponseCurveComponent::paint(juce::Graphics& g)
         responseCurve.lineTo(responseArea.getX() + magItr, map(magnitudes[magItr]));
     }
 
+    g.setColour(Colours::blue);
+    g.strokePath(leftChannelFFTPath, PathStrokeType(1.f));
+
     g.setColour(Colours::red);
     g.drawRoundedRectangle(getRenderArea().toFloat(), 4.f, 1.f);
 
@@ -304,11 +353,11 @@ void ResponseCurveComponent::resized()
     };
 
     auto renderArea = getAnalysisArea(); // caching info . . .
-    auto left = renderArea.getX();
-    auto right = renderArea.getRight();
-    auto top = renderArea.getY();
-    auto bottom = renderArea.getBottom();
-    auto width = renderArea.getWidth();
+    auto left       = renderArea.getX();
+    auto right      = renderArea.getRight();
+    auto top        = renderArea.getY();
+    auto bottom     = renderArea.getBottom();
+    auto width      = renderArea.getWidth();
 
     Array<float> xPositions;
     for (auto freq : freqs)
@@ -320,7 +369,7 @@ void ResponseCurveComponent::resized()
 
 
     g.setColour(Colours::white);
-    //for (auto f : freqs)
+
     for(auto x : xPositions)
     {
         g.drawVerticalLine(x, top, bottom);
@@ -338,8 +387,6 @@ void ResponseCurveComponent::resized()
         g.setColour(gDb == 0.f ? Colours::deepskyblue : Colours::orange);
         g.drawHorizontalLine(y, left, right);
     }
-
-    //g.drawRect(getAnalysisArea());
 
     g.setColour(Colours::lightgrey);
     const int fontHeight = 10;
@@ -406,9 +453,6 @@ void ResponseCurveComponent::resized()
 juce::Rectangle<int> ResponseCurveComponent::getRenderArea()
 {
     auto bounds = getLocalBounds();
-    //bounds.reduce(10, //JUCE_LIVE_CONSTANT(5),
-    //              8  //JUCE_LIVE_CONSTANT(5)
-    //              );
 
     bounds.removeFromTop(12);
     bounds.removeFromBottom(2);
