@@ -46,6 +46,8 @@ void LookAndFeel::drawRotarySlider(juce::Graphics & g,
     p.applyTransform(AffineTransform().rotated(sliderAngRad, center.getX(), center.getY()));
     g.fillPath(p);
 
+    //Draw 
+
 }
 //==============================================================================
 void RotarySliderWithLabels::paint(juce::Graphics& g)
@@ -58,6 +60,13 @@ void RotarySliderWithLabels::paint(juce::Graphics& g)
     auto range = getRange();
     auto sliderBounds = getSliderBounds();
 
+    // Draw slider & local bounds
+    g.setColour(Colours::blue);
+    g.drawRect(getLocalBounds());
+    g.setColour(Colours::red);
+    g.drawRect(sliderBounds);
+
+
     getLookAndFeel().drawRotarySlider(g, sliderBounds.getX(),
         sliderBounds.getY(),
         sliderBounds.getWidth(),
@@ -68,7 +77,17 @@ void RotarySliderWithLabels::paint(juce::Graphics& g)
 
 juce::Rectangle<int> RotarySliderWithLabels::getSliderBounds() const
 {
-    return getLocalBounds();
+   // return getLocalBounds();
+    auto bounds = getLocalBounds();
+    auto size = juce::jmin(bounds.getWidth(), bounds.getHeight());
+
+    size -= getTextHeight() * 2; // square around sliders
+    juce::Rectangle<int> r;
+    r.setSize(size, size);
+    r.setCentre(bounds.getCentreX(), 0);
+    r.setY(2); // 2 pixels below top of component
+
+    return r;
 }
 
 //==============================================================================
@@ -101,7 +120,7 @@ void ResponseCurveComponent::paint(juce::Graphics& g)
 {
     using namespace juce;
 
-    g.fillAll(Colours::black);
+    g.fillAll(Colours::transparentBlack);
 
     auto responseArea = getLocalBounds();
     auto width = responseArea.getWidth();
@@ -225,7 +244,7 @@ TokyoEQAudioProcessorEditor::~TokyoEQAudioProcessorEditor()
 ////==============================================================================
 void TokyoEQAudioProcessorEditor::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colours::black);
+    g.fillAll(juce::Colours::lightslategrey);
 }
 
 void TokyoEQAudioProcessorEditor::resized()
