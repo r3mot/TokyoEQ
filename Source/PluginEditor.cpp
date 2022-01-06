@@ -64,6 +64,7 @@ void LookAndFeel::drawRotarySlider(juce::Graphics & g,
     }
 }
 //==============================================================================
+
 void RotarySliderWithLabels::paint(juce::Graphics& g)
 {
     using namespace juce;
@@ -162,7 +163,9 @@ juce::String RotarySliderWithLabels::getDisplayString() const
 
     return str;
 }
+
 //==============================================================================
+
 ResponseCurveComponent::ResponseCurveComponent(TokyoEQAudioProcessor& p) : audioProcessor(p)
 {
     const auto& params = audioProcessor.getParameters();
@@ -189,28 +192,54 @@ void ResponseCurveComponent::parameterValueChanged(int parameterIndex, float new
     parametersChanged.set(true);
 }
 
+void ResponseCurveComponent::timerCallback()
+{
+    if (parametersChanged.compareAndSetBool(false, true))
+    {
+        DBG("params changed");
+      
+        //update monochain
+        updateChain();
+        //signal repaint for new response curve
+        repaint();
+    }
+}
+
+void ResponseCurveComponent::updateChain()
+{
+    auto chainSettings = getChainSettings(audioProcessor.apvts);
+    auto peakCoefficients = makePeakFilter(chainSettings, audioProcessor.getSampleRate());
+    updateCoefficients(monoChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
+
+    auto lowCutCoefficients = makeLowCutFilter(chainSettings, audioProcessor.getSampleRate());
+    auto highCutCoefficients = makeHighCutFilter(chainSettings, audioProcessor.getSampleRate());
+
+    updateCutFilter(monoChain.get<ChainPositions::LowCut>(), lowCutCoefficients, chainSettings.lowCutSlope);
+    updateCutFilter(monoChain.get<ChainPositions::HighCut>(), highCutCoefficients, chainSettings.highCutSlope);
+}
+
 void ResponseCurveComponent::paint(juce::Graphics& g)
 {
     using namespace juce;
 
     g.fillAll(Colours::transparentBlack);
 
-    auto responseArea = getLocalBounds();
-    auto width = responseArea.getWidth();
+    g.drawImage(background, getLocalBounds().toFloat());
 
-    auto& lowcut = monoChain.get<ChainPositions::LowCut>();
-    auto& peak = monoChain.get<ChainPositions::Peak>();
-    auto& highcut = monoChain.get<ChainPositions::HighCut>();
+    // auto responseArea = getLocalBounds();
+    auto responseArea   = getAnalysisArea();
+    auto width          = responseArea.getWidth();
 
-    auto sampleRate = audioProcessor.getSampleRate();
+    auto& lowcut        = monoChain.get<ChainPositions::LowCut>();
+    auto& peak          = monoChain.get<ChainPositions::Peak>();
+    auto& highcut       = monoChain.get<ChainPositions::HighCut>();
 
-    std::vector<double> magnitudes;
+    auto sampleRate     = audioProcessor.getSampleRate();
 
-    // One magnitude per pixel
+    std::vector<double> magnitudes; // One magnitude per pixel
     magnitudes.resize(width);
 
-    // Compute magnitude at frequency 
-    for (int freqItr = 0; freqItr < width; ++freqItr)
+    for (int freqItr = 0; freqItr < width; ++freqItr) // Compute magnitude at frequency 
     {
         double mag = 1.f;
         auto freq = juce::mapToLog10(double(freqItr) / double(width), 20.0, 20000.0);
@@ -240,8 +269,8 @@ void ResponseCurveComponent::paint(juce::Graphics& g)
     }
 
     Path responseCurve;
-    const double outputMin = responseArea.getBottom();
-    const double outputMax = responseArea.getY();
+    const double outputMin  = responseArea.getBottom();
+    const double outputMax  = responseArea.getY();
     auto map = [outputMin, outputMax](double input)
     {
         return jmap(input, -24.0, 24.0, outputMin, outputMax);
@@ -249,43 +278,96 @@ void ResponseCurveComponent::paint(juce::Graphics& g)
 
     responseCurve.startNewSubPath(responseArea.getX(), map(magnitudes.front()));
 
-    for (size_t otherMag = 1; otherMag < magnitudes.size(); ++otherMag)
+    for (size_t magItr = 1; magItr < magnitudes.size(); ++magItr)
     {
-        responseCurve.lineTo(responseArea.getX() + otherMag, map(magnitudes[otherMag]));
-        g.drawRoundedRectangle(responseArea.toFloat(), 4.f, 1.f);
-        g.setColour(Colours::white);
-        g.strokePath(responseCurve, PathStrokeType(2.f));
+        responseCurve.lineTo(responseArea.getX() + magItr, map(magnitudes[magItr]));
     }
 
+    g.setColour(Colours::blueviolet);
+    g.drawRoundedRectangle(getRenderArea().toFloat(), 4.f, 1.f);
+
+    g.setColour(Colours::white);
+    g.strokePath(responseCurve, PathStrokeType(2.f));
+
 }
 
-void ResponseCurveComponent::timerCallback()
+void ResponseCurveComponent::resized()
 {
-    if (parametersChanged.compareAndSetBool(false, true))
+    using namespace juce;
+    background = Image(Image::PixelFormat::RGB, getWidth(), getHeight(), true);
+
+    Graphics g(background);
+
+    Array<float> freqs //Freqency lines to window space
     {
-        DBG("params changed");
-      
-        //update monochain
-        updateChain();
-        //signal repaint for new response curve
-        repaint();
+        20, 30, 40, 50, 100,
+        200, 300, 400, 500, 1000,
+        2000, 3000, 4000, 5000, 10000,
+        20000 // top of hearing range
+    };
+
+    auto renderArea = getAnalysisArea(); // caching info . . .
+    auto left       = renderArea.getX();
+    auto right      = renderArea.getRight();
+    auto top        = renderArea.getY();
+    auto bottom     = renderArea.getWidth();
+    auto width      = renderArea.getWidth();
+
+    Array<float> xs;
+    for (auto freq : freqs)
+    {
+        auto normX = mapFromLog10(freq, 20.f, 20000.f);
+        xs.add(left + width * normX);
+    }
+
+    g.setColour(Colours::dimgrey);
+  //  for (auto freq : freqs)
+    for(auto x : xs)
+    {
+       // auto normX = mapFromLog10(freq, 20.f, 20000.f);
+        // g.drawVerticalLine(getWidth() * normX, 0.f, getHeight());
+        g.drawVerticalLine(x, top, bottom);
+    }
+
+    Array<float> gain // Gain Lines
+    {
+        -24, -12, 0, 12, 24
+    };
+
+    for (auto gDb : gain)
+    {
+        auto normY = jmap(gDb, -24.f, 24.f, float(bottom), float(top));
+       // g.drawHorizontalLine(normY, 0, getWidth());
+
+        g.setColour(gDb == 0.f ? Colour(210u, 197u, 232u) : Colours::darkgrey );
+        g.drawHorizontalLine(normY, left, right);
     }
 }
 
-void ResponseCurveComponent::updateChain()
+juce::Rectangle<int> ResponseCurveComponent::getRenderArea()
 {
-    auto chainSettings = getChainSettings(audioProcessor.apvts);
-    auto peakCoefficients = makePeakFilter(chainSettings, audioProcessor.getSampleRate());
-    updateCoefficients(monoChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
+    auto bounds = getLocalBounds();
+    //bounds.reduce(10, //JUCE_LIVE_CONSTANT(5),
+    //              8  //JUCE_LIVE_CONSTANT(5)
+    //              );
 
-    auto lowCutCoefficients = makeLowCutFilter(chainSettings, audioProcessor.getSampleRate());
-    auto highCutCoefficients = makeHighCutFilter(chainSettings, audioProcessor.getSampleRate());
+    bounds.removeFromTop(12);
+    bounds.removeFromBottom(2);
+    bounds.removeFromLeft(20);
+    bounds.removeFromRight(20);
 
-    updateCutFilter(monoChain.get<ChainPositions::LowCut>(), lowCutCoefficients, chainSettings.lowCutSlope);
-    updateCutFilter(monoChain.get<ChainPositions::HighCut>(), highCutCoefficients, chainSettings.highCutSlope);
+    return bounds;
 }
 
+juce::Rectangle<int> ResponseCurveComponent::getAnalysisArea()
+{
+    auto bounds = getRenderArea();
+    bounds.removeFromTop(4);
+    bounds.removeFromBottom(4);
+    return bounds;
+}
 //==============================================================================
+
 TokyoEQAudioProcessorEditor::TokyoEQAudioProcessorEditor(TokyoEQAudioProcessor& p)
     : AudioProcessorEditor(&p), audioProcessor(p),
     peakFreqSlider      (*audioProcessor.apvts.getParameter("Peak Freq"), "Hz"),
@@ -342,6 +424,7 @@ TokyoEQAudioProcessorEditor::~TokyoEQAudioProcessorEditor()
 }
 
 ////==============================================================================
+
 void TokyoEQAudioProcessorEditor::paint(juce::Graphics& g)
 {
     g.fillAll(juce::Colours::lightslategrey);
