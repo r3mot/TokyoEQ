@@ -181,22 +181,27 @@ bool TokyoEQAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* TokyoEQAudioProcessor::createEditor()
 {
-   // return new TokyoEQAudioProcessorEditor (*this);
-    return new GenericAudioProcessorEditor(*this);
+    return new TokyoEQAudioProcessorEditor (*this);
+    //return new GenericAudioProcessorEditor(*this);
 }
 
 //==============================================================================
 void TokyoEQAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
-    // You should use this method to store your parameters in the memory block.
-    // You could do that either as raw data, or use the XML or ValueTree classes
-    // as intermediaries to make it easy to save and load complex data.
+    // store parameters in the memory block.
+    MemoryOutputStream mos(destData, true);
+    apvts.state.writeToStream(mos);
 }
 
 void TokyoEQAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    // You should use this method to restore your parameters from this memory block,
-    // whose contents will have been created by the getStateInformation() call.
+    // restore parameters from this memory block,
+    auto tree = ValueTree::readFromData(data, sizeInBytes);
+    if (tree.isValid())
+    {
+        apvts.replaceState(tree);
+        updateAllFilters();
+    }
 }
 
 ChainSettings getChainSettings(AudioProcessorValueTreeState& apvts) // init params

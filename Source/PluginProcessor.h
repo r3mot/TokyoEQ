@@ -97,6 +97,7 @@ private:
     void updatePeakFilter(const ChainSettings& chainSettings);
     static void updateCoefficients(Coefficients& old, const Coefficients& replacements);
     
+    //==============================================================================
     template<int Index, typename ChainType, typename CoefficientType>
     void update(ChainType& chain, const CoefficientType& coefficients)
     {
@@ -104,6 +105,7 @@ private:
         chain.template setBypassed<Index>(false);
     }
 
+    //==============================================================================
     template<typename ChainType, typename CoefficientType>
     void updateCutFilter(ChainType& chain, const CoefficientType& coefficients, const Slope& slope)
     {
@@ -134,6 +136,7 @@ private:
         }
     }
 
+    //==============================================================================
     void updateLowCutFilters(const ChainSettings& chainSettings);
     void updateHighCutFilters(const ChainSettings& chainSettings);
     void updateAllFilters();
