@@ -197,11 +197,9 @@ void ResponseCurveComponent::timerCallback()
     if (parametersChanged.compareAndSetBool(false, true))
     {
         DBG("params changed");
-      
-        //update monochain
-        updateChain();
-        //signal repaint for new response curve
-        repaint();
+
+        updateChain(); //update monochain
+        repaint();     //signal repaint for new response curve
     }
 }
 
@@ -222,12 +220,12 @@ void ResponseCurveComponent::paint(juce::Graphics& g)
 {
     using namespace juce;
 
-    g.fillAll(Colours::transparentBlack);
+    g.fillAll(Colours::black); // Gain Line Window
 
     g.drawImage(background, getLocalBounds().toFloat());
 
     // auto responseArea = getLocalBounds();
-    auto responseArea   = getAnalysisArea();
+    auto responseArea   = getAnalysisArea(); // updated
     auto width          = responseArea.getWidth();
 
     auto& lowcut        = monoChain.get<ChainPositions::LowCut>();
@@ -248,14 +246,13 @@ void ResponseCurveComponent::paint(juce::Graphics& g)
             mag *= peak.coefficients->getMagnitudeForFrequency(freq, sampleRate);
 
         if (!lowcut.isBypassed<0>())
-            mag *= lowcut.get<0>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
+            mag *= lowcut.get<0>().coefficients->getMagnitudeForFrequency(freq, sampleRate); // TO:DO Refactor
         if (!lowcut.isBypassed<1>())
             mag *= lowcut.get<1>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
         if (!lowcut.isBypassed<2>())
             mag *= lowcut.get<2>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
         if (!lowcut.isBypassed<3>())
             mag *= lowcut.get<3>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
-
         if (!highcut.isBypassed<0>())
             mag *= highcut.get<0>().coefficients->getMagnitudeForFrequency(freq, sampleRate);
         if (!highcut.isBypassed<1>())
@@ -269,8 +266,8 @@ void ResponseCurveComponent::paint(juce::Graphics& g)
     }
 
     Path responseCurve;
-    const double outputMin  = responseArea.getBottom();
-    const double outputMax  = responseArea.getY();
+    const double outputMin = responseArea.getBottom();
+    const double outputMax = responseArea.getY();
     auto map = [outputMin, outputMax](double input)
     {
         return jmap(input, -24.0, 24.0, outputMin, outputMax);
@@ -283,10 +280,10 @@ void ResponseCurveComponent::paint(juce::Graphics& g)
         responseCurve.lineTo(responseArea.getX() + magItr, map(magnitudes[magItr]));
     }
 
-    g.setColour(Colours::blueviolet);
+    g.setColour(Colours::red);
     g.drawRoundedRectangle(getRenderArea().toFloat(), 4.f, 1.f);
 
-    g.setColour(Colours::white);
+    g.setColour(Colours::pink);
     g.strokePath(responseCurve, PathStrokeType(2.f));
 
 }
@@ -294,8 +291,8 @@ void ResponseCurveComponent::paint(juce::Graphics& g)
 void ResponseCurveComponent::resized()
 {
     using namespace juce;
-    background = Image(Image::PixelFormat::RGB, getWidth(), getHeight(), true);
 
+    background = Image(Image::PixelFormat::RGB, getWidth(), getHeight(), true);
     Graphics g(background);
 
     Array<float> freqs //Freqency lines to window space
@@ -307,28 +304,29 @@ void ResponseCurveComponent::resized()
     };
 
     auto renderArea = getAnalysisArea(); // caching info . . .
-    auto left       = renderArea.getX();
-    auto right      = renderArea.getRight();
-    auto top        = renderArea.getY();
-    auto bottom     = renderArea.getWidth();
-    auto width      = renderArea.getWidth();
+    auto left = renderArea.getX();
+    auto right = renderArea.getRight();
+    auto top = renderArea.getY();
+    auto bottom = renderArea.getBottom();
+    auto width = renderArea.getWidth();
 
-    Array<float> xs;
+    Array<float> xPositions;
     for (auto freq : freqs)
     {
-        auto normX = mapFromLog10(freq, 20.f, 20000.f);
-        xs.add(left + width * normX);
+        auto normX = mapFromLog10(freq, 20.f, 20000.f); //convert freq val to normalized position
+        xPositions.add(left + width * normX);
     }
-
     g.setColour(Colours::dimgrey);
-  //  for (auto freq : freqs)
-    for(auto x : xs)
+
+
+    g.setColour(Colours::white);
+    //for (auto f : freqs)
+    for(auto x : xPositions)
     {
-       // auto normX = mapFromLog10(freq, 20.f, 20000.f);
-        // g.drawVerticalLine(getWidth() * normX, 0.f, getHeight());
         g.drawVerticalLine(x, top, bottom);
     }
 
+  
     Array<float> gain // Gain Lines
     {
         -24, -12, 0, 12, 24
@@ -336,11 +334,44 @@ void ResponseCurveComponent::resized()
 
     for (auto gDb : gain)
     {
-        auto normY = jmap(gDb, -24.f, 24.f, float(bottom), float(top));
-       // g.drawHorizontalLine(normY, 0, getWidth());
+        auto y = jmap(gDb, -24.f, 24.f, float(bottom), float(top));
+        g.setColour(gDb == 0.f ? Colours::deepskyblue : Colours::orange);
+        g.drawHorizontalLine(y, left, right);
+    }
 
-        g.setColour(gDb == 0.f ? Colour(210u, 197u, 232u) : Colours::darkgrey );
-        g.drawHorizontalLine(normY, left, right);
+    //g.drawRect(getAnalysisArea());
+
+    g.setColour(Colours::lightgrey);
+    const int fontHeight = 10;
+    g.setFont(fontHeight);
+
+    for (int i = 0; i < freqs.size(); ++i)
+    {
+        auto f = freqs[i];
+        auto x = xPositions[i];
+
+        bool addK = false; // add kHz
+        String str;
+        if (f > 999.f)
+        {
+            addK = true;
+            f /= 1000.f;
+        }
+
+        str << f;
+        if (addK)
+            str << "k";
+        str << "Hz";
+
+        auto textWidth = g.getCurrentFont().getStringWidth(str);
+
+        Rectangle<int> r;
+        r.setSize(textWidth, fontHeight);
+        r.setCentre(x, 0);
+        r.setY(1);
+
+        g.drawFittedText(str, r, juce::Justification::centred, 1);
+
     }
 }
 
@@ -356,7 +387,7 @@ juce::Rectangle<int> ResponseCurveComponent::getRenderArea()
     bounds.removeFromLeft(20);
     bounds.removeFromRight(20);
 
-    return bounds;
+    return bounds; // Box surrounding gridlines
 }
 
 juce::Rectangle<int> ResponseCurveComponent::getAnalysisArea()
@@ -366,7 +397,7 @@ juce::Rectangle<int> ResponseCurveComponent::getAnalysisArea()
     bounds.removeFromBottom(4);
     return bounds;
 }
-//==============================================================================
+////==============================================================================
 
 TokyoEQAudioProcessorEditor::TokyoEQAudioProcessorEditor(TokyoEQAudioProcessor& p)
     : AudioProcessorEditor(&p), audioProcessor(p),
