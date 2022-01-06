@@ -10,12 +10,21 @@
 
 #include <JuceHeader.h>
 
+// slope amount
+enum Slope
+{
+    Slope_12,
+    Slope_24,
+    Slope_36,
+    Slope_48
+};
+
 // Data structure for all param values
 struct ChainSettings
 {
     float peakFreq{ 0 }, peakGainInDecibles{ 0 }, peakQuality{ 1.f };
     float lowCutFreq{ 0 }, highCutFreq{ 0 };
-    int lowCutSlope{ 0 }, highCutSlope{ 0 };
+    int lowCutSlope{ Slope::Slope_12 }, highCutSlope{ Slope::Slope_12 };
 };
 
 // Helper function to get all param values from ChainSettings
@@ -84,6 +93,13 @@ private:
         HighCut
     };
 
+    void updatePeakFilter(const ChainSettings& chainSettings);
+
+    // unsure of dsp::IIR class, so I'll use namespace
+    using Coefficients = Filter::CoefficientsPtr;
+
+    // Doesn't contain mem vars so will make static instead of free
+    static void updateCoefficients(Coefficients& old, const Coefficients& replacements);
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TokyoEQAudioProcessor)
