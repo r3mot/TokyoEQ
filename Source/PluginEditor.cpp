@@ -171,6 +171,7 @@ ResponseCurveComponent::ResponseCurveComponent(TokyoEQAudioProcessor& p) : audio
         param->addListener(this);
     }
 
+    updateChain();
     startTimerHz(60);
 }
 
@@ -263,20 +264,25 @@ void ResponseCurveComponent::timerCallback()
     if (parametersChanged.compareAndSetBool(false, true))
     {
         DBG("params changed");
-
+      
         //update monochain
-        auto chainSettings = getChainSettings(audioProcessor.apvts);
-        auto peakCoefficients = makePeakFilter(chainSettings, audioProcessor.getSampleRate());
-        updateCoefficients(monoChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
-
-        auto lowCutCoefficients = makeLowCutFilter(chainSettings, audioProcessor.getSampleRate());
-        auto highCutCoefficients = makeHighCutFilter(chainSettings, audioProcessor.getSampleRate());
-
-        updateCutFilter(monoChain.get<ChainPositions::LowCut>(), lowCutCoefficients, chainSettings.lowCutSlope);
-        updateCutFilter(monoChain.get<ChainPositions::HighCut>(), highCutCoefficients, chainSettings.highCutSlope);
+        updateChain();
         //signal repaint for new response curve
         repaint();
     }
+}
+
+void ResponseCurveComponent::updateChain()
+{
+    auto chainSettings = getChainSettings(audioProcessor.apvts);
+    auto peakCoefficients = makePeakFilter(chainSettings, audioProcessor.getSampleRate());
+    updateCoefficients(monoChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
+
+    auto lowCutCoefficients = makeLowCutFilter(chainSettings, audioProcessor.getSampleRate());
+    auto highCutCoefficients = makeHighCutFilter(chainSettings, audioProcessor.getSampleRate());
+
+    updateCutFilter(monoChain.get<ChainPositions::LowCut>(), lowCutCoefficients, chainSettings.lowCutSlope);
+    updateCutFilter(monoChain.get<ChainPositions::HighCut>(), highCutCoefficients, chainSettings.highCutSlope);
 }
 
 //==============================================================================
@@ -294,23 +300,41 @@ TokyoEQAudioProcessorEditor::TokyoEQAudioProcessorEditor(TokyoEQAudioProcessor& 
     responseCurveComponent(audioProcessor),
     peakFreqSliderAttachment(audioProcessor.apvts,      "Peak Freq",        peakFreqSlider),
     peakGainSliderAttachment(audioProcessor.apvts,      "Peak Gain",        peakGainSlider),
-    peakQualitySliderAttachment(audioProcessor.apvts,   "Peak Quality",     peakQualitySlider),
-    lowCutFreqSliderAttachment(audioProcessor.apvts,    "LowCut Freq",      lowCutFreqSlider),
-    highCutFreqSliderAttachment(audioProcessor.apvts,   "HighCut Freq",     highCutFreqSlider),
-    lowCutSlopeSliderAttachment(audioProcessor.apvts,   "LowCut Slope",     lowCutSlopeSlider),
-    highCutSlopeSliderAttachment(audioProcessor.apvts,  "HighCut Slope",    highCutSlopeSlider)
-    
+    peakQualitySliderAttachment(audioProcessor.apvts, "Peak Quality", peakQualitySlider),
+    lowCutFreqSliderAttachment(audioProcessor.apvts, "LowCut Freq", lowCutFreqSlider),
+    highCutFreqSliderAttachment(audioProcessor.apvts, "HighCut Freq", highCutFreqSlider),
+    lowCutSlopeSliderAttachment(audioProcessor.apvts, "LowCut Slope", lowCutSlopeSlider),
+    highCutSlopeSliderAttachment(audioProcessor.apvts, "HighCut Slope", highCutSlopeSlider)
+
 {
 
     peakFreqSlider.labels.add({ 0.f, "20Hz" });
     peakFreqSlider.labels.add({ 1.f, "20kHz" });
+
+    peakGainSlider.labels.add({ 0.f, "-24dB" });
+    peakGainSlider.labels.add({ 1.f, "+24dB" });
+
+    peakQualitySlider.labels.add({ 0.f, "0.1" });
+    peakQualitySlider.labels.add({ 1.f, "10.0" });
+
+    lowCutFreqSlider.labels.add({ 0.f, "20Hz" });
+    lowCutFreqSlider.labels.add({ 1.f, "20kHz" });
+
+    highCutFreqSlider.labels.add({ 0.f, "20Hz" });
+    highCutFreqSlider.labels.add({ 1.f, "20kHz" });
+
+    lowCutSlopeSlider.labels.add({ 0.f, "12" });
+    lowCutSlopeSlider.labels.add({ 1.f, "48" });
+
+    highCutSlopeSlider.labels.add({ 0.f, "12" });
+    highCutSlopeSlider.labels.add({ 1.f, "48" });
 
     for (auto* comp : getComps())
     {
         addAndMakeVisible(comp);
     }
 
-    setSize(600, 400); // Window Size
+    setSize(600, 480); // Window Size
 }
 
 TokyoEQAudioProcessorEditor::~TokyoEQAudioProcessorEditor()
@@ -328,7 +352,11 @@ void TokyoEQAudioProcessorEditor::resized()
     // component positions
     auto bounds         = getLocalBounds();
 
+    float hRatio = 25.f / 100.f; //JUCE_LIVE_CONSTANT(33) / 100.f;
     auto responseArea   = bounds.removeFromTop(bounds.getHeight() * 0.33);
+
+    bounds.removeFromTop(5);
+
     auto lowCutArea     = bounds.removeFromLeft(bounds.getWidth() * 0.33);
     auto highCutArea    = bounds.removeFromRight(bounds.getWidth() * 0.5);
 
