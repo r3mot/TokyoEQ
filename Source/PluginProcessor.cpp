@@ -1,8 +1,6 @@
 /*
   ==============================================================================
-
     This file contains the basic framework code for a JUCE plugin processor.
-
   ==============================================================================
 */
 
@@ -12,14 +10,14 @@
 //==============================================================================
 TokyoEQAudioProcessor::TokyoEQAudioProcessor()
 #ifndef JucePlugin_PreferredChannelConfigurations
-     : AudioProcessor (BusesProperties()
-                     #if ! JucePlugin_IsMidiEffect
-                      #if ! JucePlugin_IsSynth
-                       .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
-                      #endif
-                       .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
-                     #endif
-                       )
+    : AudioProcessor(BusesProperties()
+#if ! JucePlugin_IsMidiEffect
+#if ! JucePlugin_IsSynth
+        .withInput("Input", juce::AudioChannelSet::stereo(), true)
+#endif
+        .withOutput("Output", juce::AudioChannelSet::stereo(), true)
+#endif
+    )
 #endif
 {
 }
@@ -36,29 +34,29 @@ const juce::String TokyoEQAudioProcessor::getName() const
 
 bool TokyoEQAudioProcessor::acceptsMidi() const
 {
-   #if JucePlugin_WantsMidiInput
+#if JucePlugin_WantsMidiInput
     return true;
-   #else
+#else
     return false;
-   #endif
+#endif
 }
 
 bool TokyoEQAudioProcessor::producesMidi() const
 {
-   #if JucePlugin_ProducesMidiOutput
+#if JucePlugin_ProducesMidiOutput
     return true;
-   #else
+#else
     return false;
-   #endif
+#endif
 }
 
 bool TokyoEQAudioProcessor::isMidiEffect() const
 {
-   #if JucePlugin_IsMidiEffect
+#if JucePlugin_IsMidiEffect
     return true;
-   #else
+#else
     return false;
-   #endif
+#endif
 }
 
 double TokyoEQAudioProcessor::getTailLengthSeconds() const
@@ -77,16 +75,16 @@ int TokyoEQAudioProcessor::getCurrentProgram()
     return 0;
 }
 
-void TokyoEQAudioProcessor::setCurrentProgram (int index)
+void TokyoEQAudioProcessor::setCurrentProgram(int index)
 {
 }
 
-const juce::String TokyoEQAudioProcessor::getProgramName (int index)
+const juce::String TokyoEQAudioProcessor::getProgramName(int index)
 {
     return {};
 }
 
-void TokyoEQAudioProcessor::changeProgramName (int index, const juce::String& newName)
+void TokyoEQAudioProcessor::changeProgramName(int index, const juce::String& newName)
 {
 }
 
@@ -117,7 +115,7 @@ void TokyoEQAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock
     spec.numChannels = getTotalNumOutputChannels();
     osc.prepare(spec);
     osc.setFrequency(50);
-        
+
 }
 
 void TokyoEQAudioProcessor::releaseResources()
@@ -127,35 +125,35 @@ void TokyoEQAudioProcessor::releaseResources()
 }
 
 #ifndef JucePlugin_PreferredChannelConfigurations
-bool TokyoEQAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
+bool TokyoEQAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
 {
-  #if JucePlugin_IsMidiEffect
-    juce::ignoreUnused (layouts);
+#if JucePlugin_IsMidiEffect
+    juce::ignoreUnused(layouts);
     return true;
-  #else
+#else
     // This is the place where you check if the layout is supported.
     // In this template code we only support mono or stereo.
     // Some plugin hosts, such as certain GarageBand versions, will only
     // load plugins that support stereo bus layouts.
     if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
-     && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
+        && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
         return false;
 
     // This checks if the input layout matches the output layout
-   #if ! JucePlugin_IsSynth
+#if ! JucePlugin_IsSynth
     if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
         return false;
-   #endif
+#endif
 
     return true;
-  #endif
+#endif
 }
 #endif
 
-void TokyoEQAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
+void TokyoEQAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
-    auto totalNumInputChannels  = getTotalNumInputChannels();
+    auto totalNumInputChannels = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
     // In case we have more outputs than inputs, this code clears any output
@@ -165,7 +163,7 @@ void TokyoEQAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce
     // when they first compile a plugin, but obviously you don't need to keep
     // this code if your algorithm always overwrites all the output channels.
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear (i, 0, buffer.getNumSamples());
+        buffer.clear(i, 0, buffer.getNumSamples());
 
     // TO:DO - refactor -- completed
     updateAllFilters();
@@ -199,19 +197,20 @@ bool TokyoEQAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* TokyoEQAudioProcessor::createEditor()
 {
-    return new TokyoEQAudioProcessorEditor (*this);
+
+    return new TokyoEQAudioProcessorEditor(*this);
     //return new GenericAudioProcessorEditor(*this);
 }
 
 //==============================================================================
-void TokyoEQAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
+void TokyoEQAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
     // store parameters in the memory block.
     juce::MemoryOutputStream mos(destData, true);
     apvts.state.writeToStream(mos);
 }
 
-void TokyoEQAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
+void TokyoEQAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
     // restore parameters from this memory block,
     auto tree = juce::ValueTree::readFromData(data, sizeInBytes);
@@ -224,12 +223,13 @@ void TokyoEQAudioProcessor::setStateInformation (const void* data, int sizeInByt
 
 ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts) // init params
 {
-    
+
     ChainSettings settings;
+
     settings.lowCutFreq = apvts.getRawParameterValue("LowCut Freq")->load();
     settings.highCutFreq = apvts.getRawParameterValue("HighCut Freq")->load();
     settings.peakFreq = apvts.getRawParameterValue("Peak Freq")->load();
-    settings.peakGainInDecibles = apvts.getRawParameterValue("Peak Gain")->load();
+    settings.peakGainInDecibels = apvts.getRawParameterValue("Peak Gain")->load();
     settings.peakQuality = apvts.getRawParameterValue("Peak Quality")->load();
     settings.lowCutSlope = static_cast<Slope>(apvts.getRawParameterValue("LowCut Slope")->load());
     settings.highCutSlope = static_cast<Slope>(apvts.getRawParameterValue("HighCut Slope")->load());
@@ -246,7 +246,7 @@ Coefficients makePeakFilter(const ChainSettings& chainSettings, double sampleRat
     return juce::dsp::IIR::Coefficients<float>::makePeakFilter(sampleRate,
         chainSettings.peakFreq,
         chainSettings.peakQuality,
-        juce::Decibels::decibelsToGain(chainSettings.peakGainInDecibles));
+        juce::Decibels::decibelsToGain(chainSettings.peakGainInDecibels));
 }
 
 void TokyoEQAudioProcessor::updatePeakFilter(const ChainSettings& chainSettings)
@@ -277,13 +277,14 @@ void TokyoEQAudioProcessor::updateLowCutFilters(const ChainSettings& chainSettin
     leftChain.setBypassed<ChainPositions::LowCut>(chainSettings.lowCutBypassed);
     rightChain.setBypassed<ChainPositions::LowCut>(chainSettings.lowCutBypassed);
 
-    updateCutFilter(leftLowCut, cutCoefficients, chainSettings.lowCutSlope);
     updateCutFilter(rightLowCut, cutCoefficients, chainSettings.lowCutSlope);
+    updateCutFilter(leftLowCut, cutCoefficients, chainSettings.lowCutSlope);
 }
 
 void TokyoEQAudioProcessor::updateHighCutFilters(const ChainSettings& chainSettings)
 {
     auto highCutCoefficients = makeHighCutFilter(chainSettings, getSampleRate());
+
     auto& leftHighCut = leftChain.get<ChainPositions::HighCut>();
     auto& rightHighCut = rightChain.get<ChainPositions::HighCut>();
 
@@ -297,6 +298,7 @@ void TokyoEQAudioProcessor::updateHighCutFilters(const ChainSettings& chainSetti
 void TokyoEQAudioProcessor::updateAllFilters()
 {
     auto chainSettings = getChainSettings(apvts);
+
     updateLowCutFilters(chainSettings);
     updatePeakFilter(chainSettings);
     updateHighCutFilters(chainSettings);
@@ -310,11 +312,11 @@ juce::AudioProcessorValueTreeState::ParameterLayout TokyoEQAudioProcessor::creat
     float lowCutSkew = 0.25f;
     float HighCutSkew = 0.25f;
     float PeakFreqSkew = 0.25f;
-    float PeakGainSkew = 0.25f;
-    float PeakQualitySkew = 0.25f;
+    float PeakGainSkew = 1.f;
+    float PeakQualitySkew = 1.f;
 
 
-    layout.add(std::make_unique<juce::AudioParameterFloat>("LowCut Freq", "LowCut Freq", 
+    layout.add(std::make_unique<juce::AudioParameterFloat>("LowCut Freq", "LowCut Freq",
         juce::NormalisableRange<float>(20.f, 20000.f, 1.f, lowCutSkew), 20.f));
 
     layout.add(std::make_unique<juce::AudioParameterFloat>("HighCut Freq", "HighCut Freq",
@@ -342,7 +344,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout TokyoEQAudioProcessor::creat
     layout.add(std::make_unique<juce::AudioParameterChoice>("LowCut Slope", "LowCut Slope", stringArray, 0));
     layout.add(std::make_unique<juce::AudioParameterChoice>("HighCut Slope", "HighCut Slope", stringArray, 0));
 
-    layout.add(std::make_unique<juce::AudioParameterBool>("LocCut Bypassed", "LowCut Bypassed", false));
+    layout.add(std::make_unique<juce::AudioParameterBool>("LowCut Bypassed", "LowCut Bypassed", false));
     layout.add(std::make_unique<juce::AudioParameterBool>("Peak Bypassed", "Peak Bypassed", false));
     layout.add(std::make_unique<juce::AudioParameterBool>("HighCut Bypassed", "HighCut Bypassed", false));
     layout.add(std::make_unique<juce::AudioParameterBool>("Analyzer Enabled", "Analyzer Enabled", true));

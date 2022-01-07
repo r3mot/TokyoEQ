@@ -1,8 +1,6 @@
 /*
   ==============================================================================
-
     This file contains the basic framework code for a JUCE plugin editor.
-
   ==============================================================================
 */
 
@@ -165,27 +163,27 @@ private:
     Fifo<PathType> pathFifo;
 };
 
- struct LookAndFeel : juce::LookAndFeel_V4 // Look & feel to draw rotary sliders
+struct LookAndFeel : juce::LookAndFeel_V4 // Look & feel to draw rotary sliders
 {
-     void drawRotarySlider(juce::Graphics& g,
-         int x, int y, int width, int height,
-         float sliderPosProportional,
-         float rotaryStartAngle,
-         float rotaryEndAngle,
-         juce::Slider& slider) override;
+    void drawRotarySlider(juce::Graphics& g,
+        int x, int y, int width, int height,
+        float sliderPosProportional,
+        float rotaryStartAngle,
+        float rotaryEndAngle,
+        juce::Slider& slider) override;
 
-     void drawToggleButton(juce::Graphics& g,
-         juce::ToggleButton& toggleButton,
-         bool shouldDrawButtonAsHighlighed,
-         bool shouldDrawButtonAsDown) override;
+    void drawToggleButton(juce::Graphics& g,
+        juce::ToggleButton& toggleButton,
+        bool shouldDrawButtonAsHighlighed,
+        bool shouldDrawButtonAsDown) override;
 };
 
 struct RotarySliderWithLabels : juce::Slider // Base class initialization for sliders
 {
-    RotarySliderWithLabels(juce::RangedAudioParameter& rap, const juce::String& unitSuffix) : 
-                           juce::Slider(juce::Slider::SliderStyle::RotaryHorizontalDrag,
-                           juce::Slider::TextEntryBoxPosition::NoTextBox), param(&rap),                         
-                           suffix(unitSuffix)
+    RotarySliderWithLabels(juce::RangedAudioParameter& rap, const juce::String& unitSuffix) :
+        juce::Slider(juce::Slider::SliderStyle::RotaryHorizontalDrag,
+            juce::Slider::TextEntryBoxPosition::NoTextBox), param(&rap),
+        suffix(unitSuffix)
     {
         setLookAndFeel(&lnf);
     }
@@ -207,10 +205,10 @@ struct RotarySliderWithLabels : juce::Slider // Base class initialization for sl
     juce::Rectangle<int> getSliderBounds() const;
     int getTextHeight() const { return 14; }
     juce::String getDisplayString() const;
-   
+
 
 private:
- 
+
     LookAndFeel lnf;
     juce::RangedAudioParameter* param;
     juce::String suffix;
@@ -256,22 +254,32 @@ struct ResponseCurveComponent : juce::Component,
     }
 private:
     TokyoEQAudioProcessor& audioProcessor;
+
+    bool shouldShowFFTAnalysis = true;
+
     juce::Atomic<bool> parametersChanged{ false };
     MonoChain monoChain;
+
+    void updateResponseCurve();
+    juce::Path responseCurve;
 
     void updateChain();
 
     //==============================================================================
 
-    juce::Image background;
+    //juce::Image background;
+    void drawBackgroundGrid(juce::Graphics& g);
+    void drawTextLabel(juce::Graphics& g);
+
+    std::vector<float> getFrequencies();
+    std::vector<float> getGains();
+    std::vector<float> getXs(const std::vector<float>& freqs, float left, float width);
+
     juce::Rectangle<int> getRenderArea();
     juce::Rectangle<int> getAnalysisArea();
 
     PathProducer leftPathProducer, rightPathProducer;
 
-    bool shouldShowFFTAnalysis = true;
-
-    
 };
 //==============================================================================
 
@@ -299,19 +307,19 @@ struct AnalyzerButton : juce::ToggleButton
 
 /**
 */
-class TokyoEQAudioProcessorEditor  : public juce::AudioProcessorEditor
+class TokyoEQAudioProcessorEditor : public juce::AudioProcessorEditor
 {
 public:
-    TokyoEQAudioProcessorEditor (TokyoEQAudioProcessor&);
+    TokyoEQAudioProcessorEditor(TokyoEQAudioProcessor&);
     ~TokyoEQAudioProcessorEditor() override;
 
     //==============================================================================
-    void paint (juce::Graphics&) override;
+    void paint(juce::Graphics&) override;
     void resized() override;
 
 
 private:
-  
+
     TokyoEQAudioProcessor& audioProcessor;
 
     RotarySliderWithLabels peakFreqSlider, // sliders
@@ -335,19 +343,19 @@ private:
         lowCutSlopeSliderAttachment,
         highCutSlopeSliderAttachment;
 
+    std::vector<Component*> getComps();
+
     PowerButton lowCutBypassedButton, peakBypassButton, highCutBypassButton;
     AnalyzerButton analyzerEnabledButton;
 
     using ButtonAttachement = APVTS::ButtonAttachment;
     ButtonAttachement lowCutBypassedButtonAttachment,
-                      peakBypassButtonAttachment, 
-                      highCutBypassButtonAttachment, 
-                      analyzerEnabledButtonAttachment;
+        peakBypassButtonAttachment,
+        highCutBypassButtonAttachment,
+        analyzerEnabledButtonAttachment;
 
-
-    std::vector<Component*> getComps();
 
     LookAndFeel lnf;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TokyoEQAudioProcessorEditor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TokyoEQAudioProcessorEditor)
 };
